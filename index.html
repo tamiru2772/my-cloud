@@ -38,7 +38,7 @@
         .brand span { color: var(--neon-blue); }
 
         /* Main Area */
-        .viewport { flex: 1; padding: 60px; position: relative; }
+        .viewport { flex: 1; padding: 60px; position: relative; overflow-y: auto; }
 
         .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 50px; }
 
@@ -48,8 +48,8 @@
         #lock-screen {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(2, 6, 23, 0.95);
-            backdrop-filter: blur(20px);
+            background: rgba(2, 6, 23, 0.98);
+            backdrop-filter: blur(25px);
             z-index: 100;
             display: flex;
             flex-direction: column;
@@ -82,11 +82,12 @@
             text-decoration: none;
             color: inherit;
             transition: 0.4s;
+            display: block;
         }
 
-        .card:hover { transform: translateY(-8px); border-color: var(--neon-blue); }
+        .card:hover { transform: translateY(-8px); border-color: var(--neon-blue); background: rgba(30, 41, 59, 0.6); }
 
-        .tag { font-size: 0.7rem; color: var(--neon-blue); text-transform: uppercase; margin-top: 10px; display: block;}
+        .tag { font-size: 0.7rem; color: var(--neon-blue); text-transform: uppercase; margin-top: 10px; display: block; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -105,28 +106,29 @@
 
         <div class="header-row">
             <div>
-                <h2 id="greeting">System Loading...</h2>
-                <p style="color: var(--text-dim);">Authorized access only.</p>
+                <h2 id="greeting" style="font-size: 2rem; margin: 0;">System Loading...</h2>
+                <p style="color: var(--text-dim); margin-top: 5px;">Secure Access Enabled</p>
             </div>
             <div id="clock" class="clock-widget">00:00:00</div>
         </div>
 
         <div class="grid">
+            <a href="https://docs.google.com/presentation/d/1mb_ml9u7dmVj4ABoY8W8sZXyMbVKSdz1/export/pptx" class="card">
+                <h3>🏛️ History Class</h3>
+                <p>Муборизаи синфӣ дар солҳои 30-юм.</p>
+                <span class="tag">Open in PowerPoint (.pptx)</span>
+            </a>
+
             <a href="https://docs.google.com/spreadsheets/d/1CXIQ75DrHD884Hqb0D9lQ0GLOcQ9jDt6exvjrVaSUOc/edit?usp=drive_link" target="_blank" class="card">
                 <h3>📘 Consonant Digraphs</h3>
                 <p>Advanced phonics research module.</p>
-                <span class="tag">Language Arts</span>
+                <span class="tag">Database View</span>
             </a>
 
             <a href="https://docs.google.com/spreadsheets/d/17890ui0R8rbqh7HwE097zYZerRw9_5c_CEbt7K0RwA4/edit?usp=drive_link" target="_blank" class="card">
                 <h3>💼 Job Application</h3>
-                <p>Professional career database.</p>
-                <span class="tag">Professional</span>
-            </a>
-            <a href="https://docs.google.com/presentation/d/1mb_ml9u7dmVj4ABoY8W8sZXyMbVKSdz1/edit?usp=sharing&ouid=115182996855169117094&rtpof=true&sd=true" target="_blank" class="card">
-                <h3>🏛️ History Class</h3>
-                <p>Simple explanation.</p>
-                <span class="tag">School project </span>
+                <p>Professional career tracking.</p>
+                <span class="tag">Personal File</span>
             </a>
         </div>
     </main>
@@ -136,9 +138,7 @@
             const pin = prompt("Enter Security Pin:");
             if (pin === "2026") {
                 document.getElementById('lock-screen').style.opacity = "0";
-                setTimeout(() => {
-                    document.getElementById('lock-screen').style.display = "none";
-                }, 500);
+                setTimeout(() => { document.getElementById('lock-screen').style.display = "none"; }, 500);
             } else {
                 alert("Access Denied.");
             }
