@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tamiru | Cloud Terminal</title>
+    <title>Tamiru | Secure Terminal</title>
     <style>
         :root {
             --bg-dark: #020617;
@@ -18,14 +18,13 @@
             margin: 0;
             font-family: 'Inter', sans-serif;
             background-color: var(--bg-dark);
-            background-image: radial-gradient(circle at 10% 10%, rgba(56, 189, 248, 0.08) 0%, transparent 40%);
             color: var(--text-main);
             display: flex;
             height: 100vh;
             overflow: hidden;
         }
 
-        /* Side Panel */
+        /* Sidebar */
         .sidebar {
             width: 250px;
             background: var(--sidebar-color);
@@ -35,61 +34,45 @@
             padding: 40px 20px;
         }
 
-        .brand {
-            font-size: 1.6rem;
-            font-weight: 900;
-            margin-bottom: 50px;
-            text-align: center;
-        }
+        .brand { font-size: 1.6rem; font-weight: 900; margin-bottom: 50px; text-align: center; }
         .brand span { color: var(--neon-blue); }
 
-        .nav-link {
-            padding: 14px 20px;
-            color: var(--text-dim);
-            text-decoration: none;
-            border-radius: 12px;
-            margin-bottom: 10px;
-            transition: 0.3s;
+        /* Main Area */
+        .viewport { flex: 1; padding: 60px; position: relative; }
+
+        .header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 50px; }
+
+        .clock-widget { font-family: monospace; color: var(--neon-blue); font-size: 1.1rem; }
+
+        /* Security Overlay */
+        #lock-screen {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(2, 6, 23, 0.95);
+            backdrop-filter: blur(20px);
+            z-index: 100;
             display: flex;
+            flex-direction: column;
+            justify-content: center;
             align-items: center;
-            gap: 12px;
+            transition: 0.5s;
         }
 
-        .nav-link:hover, .nav-link.active {
-            background: rgba(56, 189, 248, 0.1);
+        .unlock-btn {
+            background: transparent;
+            border: 1px solid var(--neon-blue);
             color: var(--neon-blue);
-        }
-
-        /* Main Viewport */
-        .viewport {
-            flex: 1;
-            padding: 60px;
-            overflow-y: auto;
-        }
-
-        .header-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 50px;
-        }
-
-        .clock-widget {
-            font-family: monospace;
-            background: rgba(255,255,255,0.03);
-            padding: 10px 20px;
+            padding: 15px 30px;
             border-radius: 50px;
-            border: 1px solid rgba(255,255,255,0.05);
-            color: var(--neon-blue);
-            font-size: 1.1rem;
+            cursor: pointer;
+            font-weight: bold;
+            transition: 0.3s;
         }
+
+        .unlock-btn:hover { background: var(--neon-blue); color: var(--bg-dark); box-shadow: 0 0 20px var(--neon-blue); }
 
         /* Grid */
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 30px;
-        }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 30px; }
 
         .card {
             background: var(--card-bg);
@@ -99,85 +82,69 @@
             text-decoration: none;
             color: inherit;
             transition: 0.4s;
-            backdrop-filter: blur(10px);
         }
 
-        .card:hover {
-            transform: translateY(-8px);
-            border-color: var(--neon-blue);
-            background: rgba(30, 41, 59, 0.7);
-        }
+        .card:hover { transform: translateY(-8px); border-color: var(--neon-blue); }
 
-        .card-icon { font-size: 1.8rem; margin-bottom: 15px; }
-
-        .tag {
-            font-size: 0.7rem;
-            background: rgba(56, 189, 248, 0.15);
-            color: var(--neon-blue);
-            padding: 4px 10px;
-            border-radius: 8px;
-            display: inline-block;
-            margin-top: 15px;
-            text-transform: uppercase;
-        }
-
-        h2 { font-size: 2.2rem; margin: 0; }
+        .tag { font-size: 0.7rem; color: var(--neon-blue); text-transform: uppercase; margin-top: 10px; display: block;}
     </style>
 </head>
 <body>
 
     <aside class="sidebar">
         <div class="brand">TAMIRU<span>.IO</span></div>
-        <nav>
-            <a href="#" class="nav-link active">🏠 Dashboard</a>
-            <a href="#" class="nav-link">📂 My Files</a>
-            <a href="#" class="nav-link">⚙️ System</a>
-        </nav>
-        <div style="margin-top: auto; font-size: 0.7rem; color: #475569; text-align: center;">
-            STATUS: ENCRYPTED
-        </div>
+        <div style="margin-top: auto; font-size: 0.7rem; color: #475569; text-align: center;">ENCRYPTION: AES-256</div>
     </aside>
 
     <main class="viewport">
+        <div id="lock-screen">
+            <div style="font-size: 3rem; margin-bottom: 20px;">🔒</div>
+            <h2 style="margin-bottom: 30px;">System Encrypted</h2>
+            <button class="unlock-btn" onclick="checkPin()">UNLOCK TERMINAL</button>
+        </div>
+
         <div class="header-row">
             <div>
-                <h2 id="greeting">Welcome</h2>
-                <p style="color: var(--text-dim); margin-top: 5px;">Accessing secure cloud repositories...</p>
+                <h2 id="greeting">System Loading...</h2>
+                <p style="color: var(--text-dim);">Authorized access only.</p>
             </div>
             <div id="clock" class="clock-widget">00:00:00</div>
         </div>
 
         <div class="grid">
             <a href="https://docs.google.com/spreadsheets/d/1CXIQ75DrHD884Hqb0D9lQ0GLOcQ9jDt6exvjrVaSUOc/edit?usp=drive_link" target="_blank" class="card">
-                <div class="card-icon">📘</div>
-                <h3>Consonant Digraphs</h3>
-                <p>Advanced phonics research and adult education teaching module.</p>
-                <div class="tag">Language Arts</div>
+                <h3>📘 Consonant Digraphs</h3>
+                <p>Advanced phonics research module.</p>
+                <span class="tag">Language Arts</span>
             </a>
 
             <a href="https://docs.google.com/spreadsheets/d/17890ui0R8rbqh7HwE097zYZerRw9_5c_CEbt7K0RwA4/edit?usp=drive_link" target="_blank" class="card">
-                <div class="card-icon">💼</div>
-                <h3>Job Application</h3>
-                <p>Professional tracking and career documentation database.</p>
-                <div class="tag">Professional</div>
+                <h3>💼 Job Application</h3>
+                <p>Professional career database.</p>
+                <span class="tag">Professional</span>
             </a>
         </div>
     </main>
 
     <script>
+        function checkPin() {
+            const pin = prompt("Enter Security Pin:");
+            if (pin === "2026") {
+                document.getElementById('lock-screen').style.opacity = "0";
+                setTimeout(() => {
+                    document.getElementById('lock-screen').style.display = "none";
+                }, 500);
+            } else {
+                alert("Access Denied.");
+            }
+        }
+
         function updateUI() {
             const now = new Date();
             const hours = now.getHours();
-            
-            // Update Clock
             document.getElementById('clock').innerText = now.toLocaleTimeString();
-
-            // Update Greeting
-            let message = "Good Evening, Tamiru";
-            if (hours < 12) message = "Good Morning, Tamiru";
-            else if (hours < 18) message = "Good Afternoon, Tamiru";
-            
-            document.getElementById('greeting').innerText = message;
+            let msg = hours < 12 ? "Good Morning" : (hours < 18 ? "Good Afternoon" : "Good Evening");
+            document.getElementById('greeting').innerText = `${msg}, Tamiru`;
         }
 
         setInterval(updateUI, 1000);
