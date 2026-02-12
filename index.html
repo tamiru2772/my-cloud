@@ -4,205 +4,221 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tamiru | Zen Terminal</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         :root {
-            --bg-dark: #020617;
-            --sidebar-color: rgba(15, 23, 42, 0.8);
+            --bg-dark: #010409;
+            --sidebar-color: rgba(13, 17, 23, 0.9);
             --neon-blue: #38bdf8;
             --text-main: #f1f5f9;
         }
 
-        body, html {
-            margin: 0; padding: 0;
-            font-family: 'Inter', sans-serif;
-            background-color: var(--bg-dark);
-            color: var(--text-main);
-            height: 100vh; overflow: hidden;
-        }
-
-        /* Sakura Canvas */
-        #sakura-canvas {
-            position: fixed; top: 0; left: 0;
-            width: 100%; height: 100%;
-            pointer-events: none; z-index: 1;
-        }
-
-        .layout {
-            display: flex; height: 100vh;
-            position: relative; z-index: 2;
-        }
+        body, html { margin: 0; padding: 0; font-family: 'Inter', sans-serif; background: var(--bg-dark); color: var(--text-main); height: 100vh; overflow: hidden; }
+        #sakura-canvas { position: fixed; inset: 0; pointer-events: none; z-index: 1; }
+        .layout { display: flex; height: 100vh; position: relative; z-index: 2; }
 
         /* Sidebar */
         .sidebar {
-            width: 250px;
-            background: var(--sidebar-color);
-            backdrop-filter: blur(10px);
-            border-right: 1px solid rgba(255, 255, 255, 0.05);
-            padding: 40px 20px;
-            display: flex; flex-direction: column;
+            width: 300px; background: var(--sidebar-color); backdrop-filter: blur(20px);
+            border-right: 1px solid rgba(56, 189, 248, 0.2); padding: 30px 20px;
+            display: flex; flex-direction: column; gap: 20px;
         }
 
-        .brand { font-size: 1.6rem; font-weight: 900; text-align: center; margin-bottom: 40px; }
-        .brand span { color: var(--neon-blue); }
+        .brand { font-size: 1.5rem; font-weight: 900; letter-spacing: 2px; text-align: center; }
+        .brand span { color: var(--neon-blue); text-shadow: 0 0 10px var(--neon-blue); }
 
-        /* AI Chat Box */
-        .ai-chat-container {
-            background: rgba(30, 41, 59, 0.5);
-            border: 1px solid var(--neon-blue);
-            border-radius: 15px;
-            padding: 15px;
-            margin-top: auto;
-            font-size: 0.8rem;
-        }
+        /* Cloud Vault UI */
+        .vault-container { background: rgba(255,255,255,0.03); border: 1px dashed var(--neon-blue); border-radius: 12px; padding: 15px; }
+        #file-list { list-style: none; padding: 0; margin-top: 10px; font-size: 0.8rem; max-height: 150px; overflow-y: auto; }
+        .file-item { display: flex; justify-content: space-between; margin-bottom: 8px; color: var(--neon-blue); cursor: pointer; border-bottom: 1px solid rgba(56,189,248,0.1); padding-bottom: 4px;}
+        .file-item:hover { color: white; text-shadow: 0 0 5px var(--neon-blue); }
 
-        .ai-input {
-            width: 100%; background: rgba(0,0,0,0.3);
-            border: none; color: white; padding: 8px;
-            margin-top: 10px; border-radius: 5px; outline: none;
-        }
+        /* AI Chat UI */
+        .ai-section { background: rgba(15, 23, 42, 0.6); border-radius: 15px; padding: 15px; border: 1px solid rgba(56, 189, 248, 0.3); }
+        #ai-display { height: 100px; overflow-y: auto; font-size: 0.8rem; color: #94a3b8; margin-bottom: 10px; }
+        .ai-input { width: 100%; background: rgba(0,0,0,0.3); border: 1px solid rgba(56, 189, 248, 0.2); color: white; padding: 8px; border-radius: 8px; outline: none; box-sizing: border-box; }
 
-        /* Main Viewport */
+        /* Viewport Content */
         .viewport { flex: 1; padding: 60px; overflow-y: auto; }
-
         .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 25px; }
+        .card { background: rgba(30, 41, 59, 0.4); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.05); padding: 25px; border-radius: 20px; text-decoration: none; color: inherit; transition: 0.3s; }
+        .card:hover { transform: translateY(-5px); border-color: var(--neon-blue); box-shadow: 0 0 20px rgba(56, 189, 248, 0.1); }
 
-        .card {
-            background: rgba(30, 41, 59, 0.4);
-            backdrop-filter: blur(5px);
-            border: 1px solid rgba(255,255,255,0.05);
-            padding: 25px; border-radius: 20px;
-            text-decoration: none; color: inherit; transition: 0.3s;
-        }
-
-        .card:hover { transform: translateY(-5px); border-color: var(--neon-blue); box-shadow: 0 0 20px rgba(56, 189, 248, 0.2); }
-
-        /* Pin Screen */
-        #lock-screen {
-            position: fixed; inset: 0; background: var(--bg-dark);
-            z-index: 999; display: flex; flex-direction: column;
-            justify-content: center; align-items: center; transition: 0.8s;
-        }
-
-        .unlock-btn {
-            background: transparent; border: 1px solid var(--neon-blue);
-            color: var(--neon-blue); padding: 12px 30px; border-radius: 50px;
-            cursor: pointer; font-weight: bold; margin-top: 20px;
-        }
+        /* Lock Screen */
+        #lock-screen { position: fixed; inset: 0; background: #000; z-index: 1000; display: flex; flex-direction: column; justify-content: center; align-items: center; transition: 1s cubic-bezier(0.4, 0, 0.2, 1); }
     </style>
 </head>
 <body>
 
-    <canvas id="sakura-canvas"></canvas>
+<canvas id="sakura-canvas"></canvas>
 
-    <div id="lock-screen">
-        <h2 style="letter-spacing: 4px;">TAMIRU.IO</h2>
-        <button class="unlock-btn" onclick="checkPin()">INITIALIZE SYSTEM</button>
-    </div>
+<div id="lock-screen">
+    <div style="font-size: 4rem; margin-bottom: 20px;">💠</div>
+    <h2 style="letter-spacing: 5px; color: white;">SECURE TERMINAL</h2>
+    <button style="background:none; border: 1px solid var(--neon-blue); color:var(--neon-blue); padding:10px 40px; border-radius:20px; cursor:pointer; font-weight:bold; margin-top:20px;" onclick="checkPin()">DECRYPT SYSTEM</button>
+</div>
 
-    <div class="layout">
-        <aside class="sidebar">
-            <div class="brand">TAMIRU<span>.IO</span></div>
-            <nav style="flex: 1;">
-                <p style="font-size: 0.7rem; color: var(--neon-blue); opacity: 0.6;">NAVIGATION</p>
-                <div style="margin-bottom: 20px; cursor: pointer; opacity: 0.8;">🏠 Dashboard</div>
-                <div style="margin-bottom: 20px; cursor: pointer; opacity: 0.8;">📂 Archive</div>
-            </nav>
+<div class="layout">
+    <aside class="sidebar">
+        <div class="brand">TAMIRU<span>.OS</span></div>
+        
+        <div class="vault-container">
+            <span style="font-size: 0.7rem; letter-spacing: 1px; color: var(--neon-blue);">☁️ CLOUD GLOBAL VAULT</span>
+            <input type="file" id="file-input" style="display:none" onchange="uploadToCloud(this.files)">
+            <button onclick="document.getElementById('file-input').click()" style="width:100%; margin-top:10px; background:var(--neon-blue); border:none; border-radius:5px; cursor:pointer; font-weight:bold; padding:8px; color: #000;">Upload to Cloud</button>
+            <div id="file-list" style="margin-top:10px; font-size:0.7rem;">Checking connection...</div>
+        </div>
 
-            <div class="ai-chat-container">
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <div style="width: 8px; height: 8px; background: #22c55e; border-radius: 50%;"></div>
-                    <span>AI ASSISTANT</span>
+        <div class="ai-section">
+            <div id="ai-display"><strong>Gemini:</strong> Secure Node Active. Ready for command.</div>
+            <input type="text" class="ai-input" placeholder="Ask AI..." onkeydown="if(event.key==='Enter') aiChat(this)">
+        </div>
+        
+        <div style="margin-top:auto; font-size:0.6rem; color:#475569; text-align:center;">
+            ENCRYPTED LINK // SUPABASE CLOUD ACTIVE
+        </div>
+    </aside>
+
+    <main class="viewport">
+        <h1 id="greeting" style="font-size: 2.5rem; margin-bottom: 40px;">Initializing...</h1>
+        <div class="grid">
+            <a href="https://docs.google.com/presentation/d/1mb_ml9u7dmVj4ABoY8W8sZXyMbVKSdz1/export/pptx" class="card">
+                <h3>🏛️ History Class</h3>
+                <p>Class 44 Presentation (.pptx)</p>
+                <span style="font-size:0.7rem; color:var(--neon-blue);">AUTO-DOWNLOAD</span>
+            </a>
+            <a href="https://docs.google.com/spreadsheets/d/1CXIQ75DrHD884Hqb0D9lQ0GLOcQ9jDt6exvjrVaSUOc/edit" target="_blank" class="card">
+                <h3>📘 Phonics Project</h3>
+                <p>Consonant Digraphs Data</p>
+                <span style="font-size:0.7rem; color:var(--neon-blue);">VIEWER</span>
+            </a>
+            <a href="https://docs.google.com/spreadsheets/d/17890ui0R8rbqh7HwE097zYZerRw9_5c_CEbt7K0RwA4/edit" target="_blank" class="card">
+                <h3>💼 Job Tracking</h3>
+                <p>Personal Application Data</p>
+                <span style="font-size:0.7rem; color:var(--neon-blue);">VIEWER</span>
+            </a>
+        </div>
+    </main>
+</div>
+
+<script>
+    // --- SUPABASE AUTHENTICATION ---
+    const SUPABASE_URL = 'https://bkvafwjwkwwxpspxdggs.supabase.co'; 
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJrdmFmd2p3a3d3eHBzcHhkZ2dzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzA4OTkwNjMsImV4cCI6MjA4NjQ3NTA2M30.EuLcvJ0AtwRdfi4-OnsQslx02KVXoarx-O1UViodVoI';
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    // 1. PIN & GREETING
+    function checkPin() {
+        if (prompt("Security Key:") === "2026") {
+            document.getElementById('lock-screen').style.transform = "translateY(-100%)";
+            updateGreeting();
+            fetchCloudFiles();
+        }
+    }
+
+    function updateGreeting() {
+        const h = new Date().getHours();
+        const msg = h < 12 ? "Good Morning" : (h < 18 ? "Good Afternoon" : "Good Evening");
+        document.getElementById('greeting').innerText = `${msg}, Tamiru`;
+    }
+
+    // 2. CLOUD VAULT (SUPABASE)
+    async function uploadToCloud(files) {
+        if (!files.length) return;
+        const file = files[0];
+        const fileName = `${Date.now()}_${file.name}`;
+        
+        const { data, error } = await supabaseClient.storage.from('vault').upload(fileName, file);
+        
+        if (error) {
+            alert("Upload Error: " + error.message);
+        } else {
+            fetchCloudFiles();
+        }
+    }
+
+    async function fetchCloudFiles() {
+        const { data, error } = await supabaseClient.storage.from('vault').list('', {
+            limit: 100,
+            offset: 0,
+            sortBy: { column: 'created_at', order: 'desc' },
+        });
+
+        if (error) {
+            document.getElementById('file-list').innerText = "Cloud disconnected.";
+            return;
+        }
+
+        const list = document.getElementById('file-list');
+        if (data.length === 0) {
+            list.innerText = "Cloud vault empty.";
+        } else {
+            list.innerHTML = data.map(f => `
+                <div class="file-item" onclick="downloadFile('${f.name}')">
+                    <span>📄 ${f.name.split('_')[1] || f.name}</span>
                 </div>
-                <p id="ai-response" style="color: #94a3b8; margin-top: 10px;">Hello Tamiru. How can I help with your research today?</p>
-                <input type="text" class="ai-input" placeholder="Ask Gemini..." onkeydown="if(event.key==='Enter') simulateChat(this.value)">
-            </div>
-        </aside>
-
-        <main class="viewport">
-            <h1 id="greeting">Loading...</h1>
-            <div class="grid">
-                <a href="https://docs.google.com/presentation/d/1mb_ml9u7dmVj4ABoY8W8sZXyMbVKSdz1/export/pptx" class="card">
-                    <h3>🏛️ History Presentation</h3>
-                    <p>Муборизаи синфӣ (.pptx)</p>
-                </a>
-                <a href="https://docs.google.com/spreadsheets/d/1CXIQ75DrHD884Hqb0D9lQ0GLOcQ9jDt6exvjrVaSUOc/edit" target="_blank" class="card">
-                    <h3>📘 Consonant Digraphs</h3>
-                    <p>Educational Database</p>
-                </a>
-            </div>
-        </main>
-    </div>
-
-    <script>
-        // 1. PIN SYSTEM
-        function checkPin() {
-            if (prompt("Enter Pin:") === "2026") {
-                document.getElementById('lock-screen').style.transform = "translateY(-100%)";
-            }
+            `).join('');
         }
+    }
 
-        // 2. GREETING & CLOCK
-        function updateUI() {
-            const hrs = new Date().getHours();
-            let msg = hrs < 12 ? "Good Morning" : (hrs < 18 ? "Good Afternoon" : "Good Evening");
-            document.getElementById('greeting').innerText = `${msg}, Tamiru`;
+    async function downloadFile(name) {
+        const { data, error } = await supabaseClient.storage.from('vault').getPublicUrl(name);
+        if (data) window.open(data.publicUrl, '_blank');
+    }
+
+    // 3. AI CHAT
+    function aiChat(input) {
+        const display = document.getElementById('ai-display');
+        const val = input.value;
+        display.innerHTML += `<br><span style="color:white">> ${val}</span>`;
+        setTimeout(() => {
+            display.innerHTML += `<br><strong>Gemini:</strong> Accessing global node... Success. Vault synchronized.`;
+            display.scrollTop = display.scrollHeight;
+            input.value = "";
+        }, 600);
+    }
+
+    // 4. SAKURA LEAF ANIMATION
+    const canvas = document.getElementById('sakura-canvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = window.innerWidth; canvas.height = window.innerHeight;
+    const petals = [];
+    class Petal {
+        constructor() {
+            this.x = Math.random() * canvas.width;
+            this.y = Math.random() * canvas.height;
+            this.w = Math.random() * 8 + 4;
+            this.h = this.w * 1.5;
+            this.speed = Math.random() * 1 + 0.5;
+            this.flip = Math.random();
+            this.side = Math.random() * 2;
         }
-        updateUI();
-
-        // 3. AI CHAT SIMULATION
-        function simulateChat(input) {
-            const resp = document.getElementById('ai-response');
-            resp.innerText = "Processing...";
-            setTimeout(() => {
-                if(input.toLowerCase().includes("hello")) resp.innerText = "Greetings, Tamiru. All systems are operational.";
-                else if(input.toLowerCase().includes("history")) resp.innerText = "I have located your History .pptx file in the dashboard.";
-                else resp.innerText = "I am ready to assist. You can also use Gemini directly for complex tasks.";
-            }, 800);
+        draw() {
+            ctx.save();
+            ctx.translate(this.x, this.y);
+            ctx.rotate(this.flip);
+            ctx.beginPath();
+            ctx.moveTo(0,0);
+            ctx.bezierCurveTo(-this.w, -this.h/2, -this.w, this.h/2, 0, this.h);
+            ctx.bezierCurveTo(this.w, this.h/2, this.w, -this.h/2, 0, 0);
+            ctx.fillStyle = `rgba(56, 189, 248, 0.4)`;
+            ctx.fill();
+            ctx.restore();
         }
-
-        // 4. BLUE SAKURA PETALS ANIMATION
-        const canvas = document.getElementById('sakura-canvas');
-        const ctx = canvas.getContext('2d');
-        canvas.width = window.innerWidth;
-        canvas.height = window.innerHeight;
-
-        const petals = [];
-        class Petal {
-            constructor() {
-                this.x = Math.random() * canvas.width;
-                this.y = Math.random() * canvas.height - canvas.height;
-                this.size = Math.random() * 5 + 2;
-                this.speed = Math.random() * 1 + 0.5;
-                this.angle = Math.random() * 360;
-                this.spin = Math.random() * 0.02;
-            }
-            draw() {
-                ctx.beginPath();
-                ctx.save();
-                ctx.translate(this.x, this.y);
-                ctx.rotate(this.angle);
-                // Blue Petal Color
-                ctx.fillStyle = "rgba(56, 189, 248, 0.6)"; 
-                ctx.ellipse(0, 0, this.size, this.size * 2, 0, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.restore();
-            }
-            update() {
-                this.y += this.speed;
-                this.x += Math.sin(this.angle) * 0.5;
-                this.angle += this.spin;
-                if (this.y > canvas.height) this.y = -10;
-            }
+        update() {
+            this.y += this.speed;
+            this.x += Math.sin(this.y / 50);
+            this.flip += 0.01;
+            if (this.y > canvas.height) this.y = -20;
         }
-
-        for (let i = 0; i < 50; i++) petals.push(new Petal());
-
-        function animate() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            petals.forEach(p => { p.update(); p.draw(); });
-            requestAnimationFrame(animate);
-        }
-        animate();
-    </script>
+    }
+    for (let i = 0; i < 45; i++) petals.push(new Petal());
+    function animate() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        petals.forEach(p => { p.update(); p.draw(); });
+        requestAnimationFrame(animate);
+    }
+    animate();
+</script>
 </body>
 </html>
