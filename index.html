@@ -24,18 +24,21 @@ html,body{
   overflow:hidden;
 }
 
+/* CANVAS */
 canvas{
   position:fixed;
-  inset:0;
+  top:0;
+  left:0;
   pointer-events:none;
   z-index:1;
 }
-
 #branchCanvas{
   right:0;
+  left:auto;
   width:360px;
 }
 
+/* LAYOUT */
 .layout{
   display:flex;
   height:100%;
@@ -65,6 +68,7 @@ canvas{
   text-shadow:0 0 10px var(--blue);
 }
 
+/* VAULT */
 .vault{
   border:1px dashed var(--blue);
   border-radius:12px;
@@ -84,6 +88,7 @@ canvas{
 }
 .file-item:hover{color:white}
 
+/* AI */
 .ai{
   border:1px solid rgba(56,189,248,.3);
   border-radius:12px;
@@ -106,6 +111,7 @@ canvas{
   border-radius:6px;
 }
 
+/* MAIN */
 .viewport{
   flex:1;
   padding:60px;
@@ -131,6 +137,7 @@ canvas{
   box-shadow:0 0 20px rgba(56,189,248,.15);
 }
 
+/* LOCK */
 #lock{
   position:fixed;
   inset:0;
@@ -140,6 +147,7 @@ canvas{
   flex-direction:column;
   justify-content:center;
   align-items:center;
+  transition:transform .6s ease;
 }
 </style>
 </head>
@@ -194,112 +202,116 @@ canvas{
 </div>
 
 <script>
-// ========= SUPABASE =========
+// ===== SUPABASE =====
 const supabaseClient = supabase.createClient(
   "https://bkvafwjwkwwxpspxdggs.supabase.co",
   "PASTE_YOUR_PUBLIC_ANON_KEY_HERE"
 );
 
-// ========= LOCK =========
+// ===== LOCK =====
 function unlock(){
   if(prompt("Security Key") === "2026"){
-    document.getElementById("lock").style.transform="translateY(-100%)";
-    document.getElementById("greet").innerText="Welcome, Tamiru";
+    lock.style.transform="translateY(-100%)";
+    greet.textContent="Welcome, Tamiru";
     loadFiles();
   }
 }
 
-// ========= VAULT =========
+// ===== VAULT =====
 async function uploadFile(files){
-  if(!files.length) return;
-  const f = files[0];
+  if(!files || !files[0]) return;
   await supabaseClient.storage
     .from("vault")
-    .upload(Date.now()+"_"+f.name,f);
+    .upload(Date.now()+"_"+files[0].name, files[0]);
   loadFiles();
 }
 
 async function loadFiles(){
-  const {data,error} = await supabaseClient.storage.from("vault").list();
+  const res = await supabaseClient.storage.from("vault").list();
   const list = document.getElementById("file-list");
-  if(error){ list.innerText="Error"; return; }
-  list.innerHTML = data.length
-    ? data.map(f=>`<div class="file-item" onclick="openFile('${f.name}')">📄 ${f.name.split('_')[1]}</div>`).join("")
+
+  if(!res.data){
+    list.textContent="Vault error";
+    return;
+  }
+
+  list.innerHTML = res.data.length
+    ? res.data.map(f =>
+        `<div class="file-item" onclick="openFile('${f.name}')">📄 ${f.name.split('_')[1] || f.name}</div>`
+      ).join("")
     : "Vault empty";
 }
 
 function openFile(name){
-  const {data} = supabaseClient.storage.from("vault").getPublicUrl(name);
-  window.open(data.publicUrl);
+  const { data } = supabaseClient.storage.from("vault").getPublicUrl(name);
+  window.open(data.publicUrl,"_blank");
 }
 
-// ========= REAL AI =========
+// ===== AI =====
 async function sendAI(input){
-  const msg = input.value.trim();
+  const msg=input.value.trim();
   if(!msg) return;
   input.value="";
-  const display = document.getElementById("ai-display");
-
-  display.innerHTML += `<br><span style="color:white">> ${msg}</span>`;
-  display.scrollTop = display.scrollHeight;
+  ai-display.innerHTML+=`<br><span style="color:white">> ${msg}</span>`;
 
   try{
-    const res = await fetch(
-      "https://bkvafwjwkwwxpspxdggs.functions.supabase.co/ai-chat",
-      {
-        method:"POST",
-        headers:{ "Content-Type":"application/json" },
-        body:JSON.stringify({ message: msg })
-      }
-    );
-    const data = await res.json();
-    display.innerHTML += `<br><b>AI:</b> ${data.reply}`;
-  }catch{
-    display.innerHTML += `<br><b>AI:</b> Connection error.`;
+    const r=await fetch("https://bkvafwjwkwwxpspxdggs.functions.supabase.co/ai-chat",{
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body:JSON.stringify({ message:msg })
+    });
+    const j=await r.json();
+    ai-display.innerHTML+=`<br><b>AI:</b> ${j.reply}`;
+  }catch(e){
+    ai-display.innerHTML+=`<br><b>AI:</b> Offline`;
   }
-  display.scrollTop = display.scrollHeight;
+  ai-display.scrollTop=9999;
 }
 
-// ========= SAKURA =========
-const pCtx = document.getElementById("petalCanvas").getContext("2d");
-const bCtx = document.getElementById("branchCanvas").getContext("2d");
+// ===== SAKURA =====
+const p=document.getElementById("petalCanvas").getContext("2d");
+const b=document.getElementById("branchCanvas").getContext("2d");
 
-petalCanvas.width = innerWidth;
-petalCanvas.height = innerHeight;
-branchCanvas.width = 360;
-branchCanvas.height = innerHeight;
+function resize(){
+  petalCanvas.width=innerWidth;
+  petalCanvas.height=innerHeight;
+  branchCanvas.width=360;
+  branchCanvas.height=innerHeight;
+}
+window.addEventListener("resize",resize);
+resize();
 
-const petals = Array.from({length:60},()=>({
-  x: innerWidth - Math.random()*200,
-  y: Math.random()*innerHeight,
-  s: Math.random()*6+4
+const petals=Array.from({length:50},()=>({
+  x:innerWidth-Math.random()*200,
+  y:Math.random()*innerHeight,
+  s:Math.random()*6+4
 }));
 
 let t=0;
-function animate(){
-  pCtx.clearRect(0,0,innerWidth,innerHeight);
-  petals.forEach(p=>{
-    p.y+=0.8; p.x-=0.4;
-    if(p.y>innerHeight) p.y=-20;
-    pCtx.fillStyle="rgba(150,200,255,.7)";
-    pCtx.beginPath();
-    pCtx.ellipse(p.x,p.y,p.s,p.s*1.4,0,0,Math.PI*2);
-    pCtx.fill();
+(function animate(){
+  p.clearRect(0,0,innerWidth,innerHeight);
+  petals.forEach(o=>{
+    o.y+=.7; o.x-=.3;
+    if(o.y>innerHeight) o.y=-20;
+    p.fillStyle="rgba(150,200,255,.6)";
+    p.beginPath();
+    p.ellipse(o.x,o.y,o.s,o.s*1.4,0,0,Math.PI*2);
+    p.fill();
   });
 
-  bCtx.clearRect(0,0,360,innerHeight);
-  t+=0.01;
-  bCtx.strokeStyle="#3b2f2f";
-  bCtx.lineWidth=6;
-  bCtx.beginPath();
-  bCtx.moveTo(340,0);
-  bCtx.quadraticCurveTo(200+Math.sin(t)*10,innerHeight/2,120,innerHeight);
-  bCtx.stroke();
+  b.clearRect(0,0,360,innerHeight);
+  t+=.01;
+  b.strokeStyle="#3b2f2f";
+  b.lineWidth=6;
+  b.beginPath();
+  b.moveTo(340,0);
+  b.quadraticCurveTo(220+Math.sin(t)*8,innerHeight/2,140,innerHeight);
+  b.stroke();
 
   requestAnimationFrame(animate);
-}
-animate();
+})();
 </script>
 
 </body>
 </html>
+
